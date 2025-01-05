@@ -2,6 +2,7 @@ package collections
 
 import "golang.org/x/exp/constraints"
 
+// ForEach applies function to each element of passed slice.
 func ForEach[S ~[]E, E any](items S, f func(E)) {
 	for _, item := range items {
 		f(item)
@@ -17,10 +18,22 @@ func Reduce[S ~[]E, E any, U constraints.Ordered](items S, f func(E) U) (result 
 	return accumulator
 }
 
+// GroupByUniqueKey extracts key from passed slice and uses it as key for map to group values.
+// Note that same key for values will override output map with latest value.
 func GroupByUniqueKey[T comparable, U any](items []U, mapper func(U) T) map[T]U {
 	out := make(map[T]U, len(items))
 	for _, item := range items {
 		out[mapper(item)] = item
+	}
+	return out
+}
+
+// CollectByKey extracts key for passed slice elements and collects them into mapp of small slices.
+func CollectByKey[T comparable, U any](items []U, mapper func(U) T) map[T][]U {
+	out := make(map[T][]U, len(items))
+	for _, item := range items {
+		key := mapper(item)
+		out[key] = append(out[key], item)
 	}
 	return out
 }
@@ -45,17 +58,29 @@ func (s *iterator[T]) Size() int {
 	return len(s.values)
 }
 
+// PickNext is a shortcut for Next and Pick methods called within single method.
 func (s *iterator[T]) PickNext() (T, bool) {
-	if s.idx == len(s.values) {
+	if !s.Next() {
 		var t T
 		return t, false
 	}
 
 	value := s.values[s.idx]
-	s.idx++
+
 	return value, true
 }
 
+// Next moves cursor to the next value if available. Returns false if it reached last element.
+func (s *iterator[T]) Next() bool {
+	if s.idx >= len(s.values) {
+		return false
+	}
+
+	s.idx++
+	return true
+}
+
+// Pick value from iterator.
 func (s *iterator[T]) Pick() T {
 	if s.idx >= len(s.values) {
 		var t T
@@ -63,7 +88,6 @@ func (s *iterator[T]) Pick() T {
 	}
 
 	value := s.values[s.idx]
-	s.idx++
 	return value
 }
 
